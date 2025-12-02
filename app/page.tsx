@@ -1,65 +1,164 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import * as THREE from "three";
+import { MAX_HEALTH } from "@/app/lib/constants";
+import { GameState } from "@/app/types/game";
+import { HUD } from "@/app/components/ui/HUD";
+import { PauseOverlay } from "@/app/components/ui/PauseOverlay";
+import { GameOverOverlay } from "@/app/components/ui/GameOverOverlay";
+import { GameCanvas } from "@/app/components/game/GameCanvas";
+import { HandTrackingDisplay } from "@/app/components/ui/HandTrackingDisplay";
+import { useHandTracking } from "@/app/hooks/useHandTracking";
+
+export default function SnailMailGame() {
+  const [score, setScore] = useState(0);
+  const [health, setHealth] = useState(MAX_HEALTH);
+  const [combo, setCombo] = useState(0);
+  const [lastHitTime, setLastHitTime] = useState(0);
+  const [mouseX, setMouseX] = useState<number>(0);
+  const [gameState, setGameState] = useState<GameState>("playing");
+  const [highScore, setHighScore] = useState(0);
+  const [handControlEnabled, setHandControlEnabled] = useState(false);
+  const snailRef = useRef<THREE.Group>(null);
+
+  const {
+    isReady,
+    handPosition,
+    videoRef,
+    canvasRef,
+    error,
+    startTracking,
+    stopTracking,
+  } = useHandTracking();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("snailMailHighScore");
+    if (stored) {
+      setHighScore(parseInt(stored, 10));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (score > highScore) {
+      setHighScore(score);
+      localStorage.setItem("snailMailHighScore", score.toString());
+    }
+  }, [score, highScore]);
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!handControlEnabled) {
+        const newMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        setMouseX(THREE.MathUtils.clamp(newMouseX, -1, 1));
+      }
+    },
+    [handControlEnabled],
+  );
+
+  const handleToggleHandControl = useCallback(async () => {
+    if (!handControlEnabled) {
+      await startTracking();
+      setHandControlEnabled(true);
+    } else {
+      stopTracking();
+      setHandControlEnabled(false);
+      setMouseX(0);
+    }
+  }, [handControlEnabled, startTracking, stopTracking]);
+
+  useEffect(() => {
+    if (handControlEnabled && handPosition) {
+      setMouseX(THREE.MathUtils.clamp(handPosition.x, -1, 1));
+    }
+  }, [handControlEnabled, handPosition]);
+
+  const handleRestart = useCallback(() => {
+    setScore(0);
+    setHealth(MAX_HEALTH);
+    setCombo(0);
+    setGameState("playing");
+    setMouseX(0);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (gameState === "playing") {
+        if (e.key === "ArrowLeft" && !handControlEnabled) {
+          setMouseX((prev) => Math.max(-1, prev - 0.1));
+        } else if (e.key === "ArrowRight" && !handControlEnabled) {
+          setMouseX((prev) => Math.min(1, prev + 0.1));
+        } else if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+          setGameState("paused");
+        }
+      } else if (gameState === "paused") {
+        if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+          setGameState("playing");
+        }
+      } else if (gameState === "gameOver") {
+        if (e.key === "Enter" || e.key === " ") {
+          handleRestart();
+        }
+      }
+    },
+    [gameState, handleRestart, handControlEnabled],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  const handlePause = useCallback(() => {
+    setGameState(gameState === "paused" ? "playing" : "paused");
+  }, [gameState]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div
+      className="w-full h-screen bg-black relative overflow-hidden select-none"
+      onMouseMove={handleMouseMove}
+    >
+      <HUD
+        score={score}
+        health={health}
+        combo={combo}
+        highScore={highScore}
+        gameState={gameState}
+        onPause={handlePause}
+      />
+
+      {gameState === "paused" && <PauseOverlay />}
+
+      {gameState === "gameOver" && (
+        <GameOverOverlay
+          score={score}
+          highScore={highScore}
+          onRestart={handleRestart}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
+
+      <GameCanvas
+        mouseX={mouseX}
+        snailRef={snailRef}
+        gameState={gameState}
+        score={score}
+        setScore={setScore}
+        setHealth={setHealth}
+        setLastHitTime={setLastHitTime}
+        setCombo={setCombo}
+        setGameState={setGameState}
+        lastHitTime={lastHitTime}
+      />
+
+      <HandTrackingDisplay
+        canvasRef={canvasRef}
+        videoRef={videoRef}
+        isReady={isReady}
+        handPosition={handPosition}
+        onToggle={handleToggleHandControl}
+        isEnabled={handControlEnabled}
+        error={error}
+      />
     </div>
   );
 }
