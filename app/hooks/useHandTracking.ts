@@ -10,6 +10,7 @@ interface UseHandTrackingReturn {
   error: string | null;
   startTracking: () => Promise<void>;
   stopTracking: () => void;
+  lastGesture: string | null;
 }
 
 export function useHandTracking(): UseHandTrackingReturn {
@@ -24,6 +25,7 @@ export function useHandTracking(): UseHandTrackingReturn {
   const gestureRecognizerRef = useRef<any>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef<number>(-1);
+  const [lastGesture, setLastGesture] = useState<string | null>(null);
 
   const stopTracking = useCallback(() => {
     if (animationFrameRef.current) {
@@ -111,8 +113,19 @@ export function useHandTracking(): UseHandTrackingReturn {
           // Invert X axis: right hand movement goes left (-1), left hand movement goes right (+1)
           const normalizedX = -(palmCenterX * 2 - 1);
           setHandPosition({ x: normalizedX, y: palmCenterY });
+
+          // Capture gesture classification name if available
+          if (results.gestures && results.gestures.length > 0) {
+            const topGesture = results.gestures[0][0];
+            if (topGesture && topGesture.categoryName) {
+              setLastGesture(topGesture.categoryName as string);
+            }
+          } else {
+            setLastGesture(null);
+          }
         } else {
           setHandPosition(null);
+          setLastGesture(null);
         }
       }
     } catch (err) {
@@ -200,5 +213,6 @@ export function useHandTracking(): UseHandTrackingReturn {
     error,
     startTracking,
     stopTracking,
+    lastGesture,
   };
 }

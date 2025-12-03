@@ -30,6 +30,7 @@ export default function SnailMailGame() {
     error,
     startTracking,
     stopTracking,
+    lastGesture,
   } = useHandTracking();
 
   useEffect(() => {
@@ -66,6 +67,20 @@ export default function SnailMailGame() {
       setMouseX(0);
     }
   }, [handControlEnabled, startTracking, stopTracking]);
+
+  // Auto-enable hand control and request camera on game start
+  useEffect(() => {
+    const enableOnStart = async () => {
+      try {
+        await startTracking();
+        setHandControlEnabled(true);
+      } catch (e) {
+        // keep mouse control fallback
+      }
+    };
+    enableOnStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (handControlEnabled && handPosition) {
@@ -112,6 +127,18 @@ export default function SnailMailGame() {
   const handlePause = useCallback(() => {
     setGameState(gameState === "paused" ? "playing" : "paused");
   }, [gameState]);
+
+  // Use a simple hand gesture to continue/resume the game
+  useEffect(() => {
+    if (!handControlEnabled || !lastGesture) return;
+
+    // Resume from paused on an open palm or thumbs up
+    if (gameState === "paused") {
+      if (lastGesture === "Open_Palm" || lastGesture === "Thumb_Up") {
+        setGameState("playing");
+      }
+    }
+  }, [handControlEnabled, lastGesture, gameState, handleRestart]);
 
   return (
     <div
