@@ -10,6 +10,8 @@ interface HandTrackingDisplayProps {
   onToggle: () => void;
   isEnabled: boolean;
   error: string | null;
+  isJumping?: boolean;
+  lastGesture?: string | null;
 }
 
 export function HandTrackingDisplay({
@@ -20,6 +22,8 @@ export function HandTrackingDisplay({
   onToggle,
   isEnabled,
   error,
+  isJumping,
+  lastGesture,
 }: HandTrackingDisplayProps) {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -52,11 +56,10 @@ export function HandTrackingDisplay({
           <div className="flex items-center gap-3 mb-2">
             <button
               onClick={onToggle}
-              className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${
-                isEnabled
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-gray-600 hover:bg-gray-700"
-              } text-white`}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${isEnabled
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-gray-600 hover:bg-gray-700"
+                } text-white`}
             >
               {isEnabled ? "✋ Hand Control ON" : "🖱️ Mouse Control"}
             </button>
@@ -96,6 +99,16 @@ export function HandTrackingDisplay({
                     <div className="text-yellow-300">
                       X: {handPosition.x.toFixed(2)}
                     </div>
+                    {lastGesture && (
+                      <div className="text-cyan-300">
+                        {lastGesture.replace(/_/g, " ")}
+                      </div>
+                    )}
+                    {isJumping && (
+                      <div className="text-orange-400 font-bold animate-pulse">
+                        🚀 JUMP!
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-red-400">No Hand</div>

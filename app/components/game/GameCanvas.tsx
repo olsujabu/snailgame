@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
 import * as THREE from "three";
@@ -21,6 +21,10 @@ interface GameCanvasProps {
   setCombo: React.Dispatch<React.SetStateAction<number>>;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   lastHitTime: number;
+  isJumping: boolean;
+  onJump: () => void;
+  onHit: () => void;
+  onCollect: () => void;
 }
 
 export function GameCanvas({
@@ -34,7 +38,12 @@ export function GameCanvas({
   setCombo,
   setGameState,
   lastHitTime,
+  isJumping,
+  onJump,
+  onHit,
+  onCollect,
 }: GameCanvasProps) {
+  const [isHit, setIsHit] = useState(false);
   return (
     <Canvas shadows camera={{ position: [0, 2, 6], fov: 65 }}>
       <color attach="background" args={["#1e1b4b"]} />
@@ -45,7 +54,14 @@ export function GameCanvas({
 
       <InfiniteRoad />
 
-      <Snail mouseX={mouseX} snailRef={snailRef} gameState={gameState} />
+      <Snail
+        mouseX={mouseX}
+        snailRef={snailRef}
+        gameState={gameState}
+        isJumping={isJumping}
+        isHit={isHit}
+        onJump={onJump}
+      />
 
       {gameState === "playing" && (
         <GameManager
@@ -57,6 +73,9 @@ export function GameCanvas({
           setGameState={setGameState}
           gameState={gameState}
           score={score}
+          setIsHit={setIsHit}
+          onHit={onHit}
+          onCollect={onCollect}
         />
       )}
 

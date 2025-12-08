@@ -10,6 +10,7 @@ import { GameOverOverlay } from "@/app/components/ui/GameOverOverlay";
 import { GameCanvas } from "@/app/components/game/GameCanvas";
 import { HandTrackingDisplay } from "@/app/components/ui/HandTrackingDisplay";
 import { useHandTracking } from "@/app/hooks/useHandTracking";
+import { useGameAudio } from "@/app/hooks/useGameAudio";
 
 export default function SnailMailGame() {
   const [score, setScore] = useState(0);
@@ -31,7 +32,10 @@ export default function SnailMailGame() {
     startTracking,
     stopTracking,
     lastGesture,
+    isJumping,
   } = useHandTracking();
+
+  const { playJumpSound, playHitSound, playCollectSound } = useGameAudio();
 
   useEffect(() => {
     const stored = localStorage.getItem("snailMailHighScore");
@@ -175,6 +179,10 @@ export default function SnailMailGame() {
         setCombo={setCombo}
         setGameState={setGameState}
         lastHitTime={lastHitTime}
+        isJumping={isJumping}
+        onJump={playJumpSound}
+        onHit={playHitSound}
+        onCollect={playCollectSound}
       />
 
       <HandTrackingDisplay
@@ -185,6 +193,8 @@ export default function SnailMailGame() {
         onToggle={handleToggleHandControl}
         isEnabled={handControlEnabled}
         error={error}
+        isJumping={isJumping}
+        lastGesture={lastGesture}
       />
     </div>
   );

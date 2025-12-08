@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Trail } from "@react-three/drei";
 import * as THREE from "three";
@@ -11,11 +11,20 @@ export function Snail({
   mouseX,
   snailRef,
   gameState,
+  isJumping,
+  isHit,
+  onJump,
 }: {
   mouseX: number;
   snailRef: React.RefObject<THREE.Group | null>;
   gameState: GameState;
+  isJumping?: boolean;
+  isHit?: boolean;
+  onJump?: () => void;
 }) {
+  const jumpStateRef = useRef({ isJumping: false, startTime: 0 });
+  const hitStartTimeRef = useRef(0);
+
   useFrame((state) => {
     if (!snailRef.current || gameState !== "playing") return;
 
@@ -28,19 +37,74 @@ export function Snail({
       SNAIL_STEERING_SPEED,
     );
 
+    // Jump animation with arc trajectory
+    if (isJumping && !jumpStateRef.current.isJumping) {
+      jumpStateRef.current.isJumping = true;
+      jumpStateRef.current.startTime = state.clock.elapsedTime;
+      if (onJump) onJump();
+    }
+
+    let baseY = 0.5;
+    let jumpRotation = 0;
+
+    if (jumpStateRef.current.isJumping) {
+      const jumpDuration = 0.6;
+      const elapsed = state.clock.elapsedTime - jumpStateRef.current.startTime;
+      const progress = Math.min(elapsed / jumpDuration, 1);
+
+      if (progress < 1) {
+        // Parabolic arc for jump
+        const jumpHeight = 2.5;
+        baseY = 0.5 + jumpHeight * Math.sin(progress * Math.PI);
+        // Forward rotation during jump
+        jumpRotation = Math.sin(progress * Math.PI) * 0.4;
+      } else {
+        jumpStateRef.current.isJumping = false;
+      }
+    }
+
+    // Hit animation - shake and flash
+    if (isHit) {
+      hitStartTimeRef.current = state.clock.elapsedTime;
+    }
+
+    const hitElapsed = state.clock.elapsedTime - hitStartTimeRef.current;
+    let shakeX = 0;
+    let shakeZ = 0;
+    let shakePosX = 0;
+    let shakePosY = 0;
+
+    if (hitElapsed < 0.4) {
+      const shakeIntensity = 0.5 * (1 - hitElapsed / 0.4);
+      shakeX = Math.sin(hitElapsed * 60) * shakeIntensity;
+      shakeZ = Math.cos(hitElapsed * 60) * shakeIntensity;
+      shakePosX = Math.sin(hitElapsed * 80) * 0.3 * (1 - hitElapsed / 0.4);
+      shakePosY = Math.abs(Math.sin(hitElapsed * 100)) * 0.15 * (1 - hitElapsed / 0.4);
+    }
+
     snailRef.current.position.y =
-      0.5 + Math.sin(state.clock.elapsedTime * 15) * 0.05;
+      baseY + Math.sin(state.clock.elapsedTime * 15) * 0.05 + shakePosY;
+    snailRef.current.position.x = THREE.MathUtils.lerp(
+      snailRef.current.position.x,
+      targetX + shakePosX,
+      SNAIL_STEERING_SPEED,
+    );
 
     const tilt = (snailRef.current.position.x - targetX) * -2;
     snailRef.current.rotation.z = THREE.MathUtils.lerp(
       snailRef.current.rotation.z,
-      tilt,
-      0.1,
+      tilt + shakeZ,
+      0.15,
     );
     snailRef.current.rotation.y = THREE.MathUtils.lerp(
       snailRef.current.rotation.y,
-      tilt * 0.5,
-      0.1,
+      tilt * 0.5 + shakeZ,
+      0.15,
+    );
+    snailRef.current.rotation.x = THREE.MathUtils.lerp(
+      snailRef.current.rotation.x,
+      jumpRotation + shakeX,
+      0.2,
     );
   });
 

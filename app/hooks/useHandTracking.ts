@@ -11,6 +11,7 @@ interface UseHandTrackingReturn {
   startTracking: () => Promise<void>;
   stopTracking: () => void;
   lastGesture: string | null;
+  isJumping: boolean;
 }
 
 export function useHandTracking(): UseHandTrackingReturn {
@@ -26,6 +27,7 @@ export function useHandTracking(): UseHandTrackingReturn {
   const animationFrameRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef<number>(-1);
   const [lastGesture, setLastGesture] = useState<string | null>(null);
+  const [isJumping, setIsJumping] = useState(false);
 
   const stopTracking = useCallback(() => {
     if (animationFrameRef.current) {
@@ -118,14 +120,19 @@ export function useHandTracking(): UseHandTrackingReturn {
           if (results.gestures && results.gestures.length > 0) {
             const topGesture = results.gestures[0][0];
             if (topGesture && topGesture.categoryName) {
-              setLastGesture(topGesture.categoryName as string);
+              const gestureName = topGesture.categoryName as string;
+              setLastGesture(gestureName);
+              // Detect jump gestures
+              setIsJumping(gestureName === "Closed_Fist" || gestureName === "Pointing_Up");
             }
           } else {
             setLastGesture(null);
+            setIsJumping(false);
           }
         } else {
           setHandPosition(null);
           setLastGesture(null);
+          setIsJumping(false);
         }
       }
     } catch (err) {
@@ -214,5 +221,6 @@ export function useHandTracking(): UseHandTrackingReturn {
     startTracking,
     stopTracking,
     lastGesture,
+    isJumping,
   };
 }

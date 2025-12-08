@@ -35,6 +35,9 @@ interface GameManagerProps {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   gameState: GameState;
   score: number;
+  setIsHit: React.Dispatch<React.SetStateAction<boolean>>;
+  onHit: () => void;
+  onCollect: () => void;
 }
 
 export function GameManager({
@@ -46,6 +49,9 @@ export function GameManager({
   setGameState,
   gameState,
   score,
+  setIsHit,
+  onHit,
+  onCollect,
 }: GameManagerProps) {
   const [items, setItems] = useState<GameItem[]>([]);
   const [effects, setEffects] = useState<CollectEffect[]>([]);
@@ -84,6 +90,7 @@ export function GameManager({
     if (!snailRef.current || gameState !== "playing") return;
 
     const snailX = snailRef.current.position.x;
+    const snailY = snailRef.current.position.y;
     const snailZ = 0;
 
     // Wider collision detection zone based on current speed
@@ -119,6 +126,7 @@ export function GameManager({
 
                 setScore((s) => s + totalPoints);
                 setCombo(currentCombo.current);
+                onCollect();
 
                 setEffects((prev) => [
                   ...prev,
@@ -144,6 +152,11 @@ export function GameManager({
                   },
                 ]);
               } else if (item.type === "salt") {
+                // Skip collision if snail is jumping high enough
+                if (snailY > 1.5) {
+                  return true; // Keep the item, snail jumped over it
+                }
+
                 setHealth((h) => {
                   const newHealth = Math.max(0, h - SALT_DAMAGE);
                   if (newHealth === 0) {
@@ -152,6 +165,9 @@ export function GameManager({
                   return newHealth;
                 });
                 setLastHitTime(now + 0.5);
+                setIsHit(true);
+                setTimeout(() => setIsHit(false), 300);
+                onHit();
                 currentCombo.current = 0;
                 setCombo(0);
 
