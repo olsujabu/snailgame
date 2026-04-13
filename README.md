@@ -19,6 +19,10 @@ MediaPipe – for interactive input (gesture-based control)
 🎮 MediaPipe Usage : 
 MediaPipe was used to enable gesture-based interaction, allowing players to control the game without traditional input devices like a keyboard or mouse. This improves accessibility and creates a more immersive user experience. 
 
+## How to Play 
+  1. Go to -> [https://snailgame.vercel.app/](https://snailgame.vercel.app/)
+  2. You enable camera in Browser to play by hand
+  3. And you enjoy
 ## Getting Started
 
 First, run the development server:
@@ -34,5 +38,3 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-Clone it and Have fun!.
